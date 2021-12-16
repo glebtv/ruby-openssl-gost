@@ -1,7 +1,7 @@
 FROM hedmade/docker-openssl-gost AS openssl-gost
 
 # must use same debian as docker-openssl-gost
-FROM buildpack-deps:buster AS ruby_2.5.8
+FROM buildpack-deps:buster AS ruby
 
 COPY --from=openssl-gost /usr/local/ssl /usr/local/ssl
 COPY --from=openssl-gost /usr/local/ssl/bin/openssl /usr/bin/openssl
@@ -27,10 +27,11 @@ RUN set -eux; \
 		echo 'update: --no-document'; \
 	} >> /usr/local/etc/gemrc
 
-ENV RUBY_MAJOR 2.5
-ENV RUBY_VERSION 2.5.8
-ENV RUBY_DOWNLOAD_SHA256 6c0bdf07876c69811a9e7dc237c43d40b1cb6369f68e0e17953d7279b524ad9a
-ENV RUBYGEMS_VERSION 3.0.3
+ENV RUBY_MAJOR 2.7
+ENV RUBY_VERSION 2.7.5
+ENV RUBY_DOWNLOAD_SHA256 2755b900a21235b443bb16dadd9032f784d4a88f143d852bc5d154f22b8781f1
+ENV BUNDLER_VERSION 2.2.33
+ENV RUBYGEMS_VERSION 3.2.33
 
 # some of ruby's build scripts are written in ruby
 #   we purge system ruby later to make sure our final image uses what we just built
@@ -91,9 +92,10 @@ RUN set -eux; \
 # make sure bundled "rubygems" is older than RUBYGEMS_VERSION (https://github.com/docker-library/ruby/issues/246)
 	ruby -e 'exit(Gem::Version.create(ENV["RUBYGEMS_VERSION"]) > Gem::Version.create(Gem::VERSION))'; \
 	gem update --system "$RUBYGEMS_VERSION" && rm -r /root/.gem/; \
+  gem install bundler --version="$BUNDLER_VERSION" --force; \
 # verify we have no "ruby" packages installed
-	! dpkg -l | grep -i ruby; \
-	[ "$(command -v ruby)" = '/usr/local/bin/ruby' ]; \
+       ! dpkg -l | grep -i ruby; \
+       [ "$(command -v ruby)" = '/usr/local/bin/ruby' ]; \
 # rough smoke test
 	ruby --version; \
 	gem --version; \
